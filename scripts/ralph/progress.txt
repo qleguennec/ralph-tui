@@ -677,3 +677,63 @@ Started: Sun 11 Jan 10:55:32 GMT 2026
   - extractAcceptanceCriteria() can parse markdown sections or checklist patterns
   - The template init command with --force flag allows safe template customization workflow
 ---
+
+## 2026-01-11 - ralph-tui-45r.31
+- What was implemented:
+  - US-031: npm Package Configuration with full acceptance criteria
+  - Updated bin field to use 'ralph-tui' as the binary name (was 'ralph')
+  - Changed shebang from #!/usr/bin/env node to #!/usr/bin/env bun
+  - Updated engines field from node>=20.0.0 to bun>=1.0.0
+  - Added *.tgz to .gitignore for pack artifacts
+  - Verified: bun build succeeds, typecheck/lint pass
+  - Verified: bun pm pack produces valid 3.91MB tarball with 68 files
+  - Verified: bun link works for global installation
+  - Verified: bunx ralph-tui --help works
+- Files changed:
+  - package.json (updated) - bin field, engines field
+  - src/cli.tsx (updated) - shebang changed to bun
+  - .gitignore (updated) - added *.tgz
+- **Learnings:**
+  - OpenTUI builds with `--target bun` use bun: protocol imports that fail on Node.js
+  - Bun-native packages should use #!/usr/bin/env bun shebang, not node
+  - The engines field accepts bun version constraint just like node
+  - bun link creates symlink in ~/.bun/bin/ for global installation
+  - bun pm pack is equivalent to npm pack for creating distribution tarballs
+---
+
+## 2026-01-11 - ralph-tui-45r.33
+- What was implemented:
+  - US-032: README and OSS Documentation with full acceptance criteria
+  - Created README.md with comprehensive project documentation:
+    - Project description and goals (AI Agent Loop Orchestrator)
+    - Feature list (autonomous loop, multi-agent, multi-tracker, TUI, persistence, etc.)
+    - Installation instructions for Bun (`bun install -g ralph-tui`)
+    - Quick start guide (setup, run, watch)
+    - Full CLI reference with all commands and options
+    - Configuration section with example YAML config
+    - Usage examples for beads, beads-bv, prd.json trackers
+    - Usage examples for claude and opencode agents
+    - TUI keyboard shortcuts table
+    - Prompt template system documentation
+    - Plugin system overview
+    - Architecture diagram
+  - Added LICENSE file with MIT license text (2026)
+  - Created CONTRIBUTING.md with:
+    - Development setup instructions
+    - Code style guidelines (ABOUTME comments, TypeScript conventions)
+    - Directory structure overview
+    - Plugin development guide
+    - Commit message format
+    - Pull request guidelines
+    - Testing procedures
+    - Issue reporting template
+- Files changed:
+  - README.md (new) - Comprehensive project documentation
+  - LICENSE (new) - MIT license
+  - CONTRIBUTING.md (new) - Contribution guidelines
+- **Learnings:**
+  - OSS documentation should be scannable: badges, quick start upfront, tables for reference
+  - README should mirror CLI help output for consistency
+  - CONTRIBUTING.md lowers barrier to entry by setting clear expectations upfront
+  - License year should match the current year (2026)
+---
