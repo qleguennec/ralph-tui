@@ -170,6 +170,14 @@ function beadToTask(bead: BeadJson): TrackerTask {
     }
   }
 
+  // Infer parentId from bead ID if not provided (bd list --json bug)
+  // e.g., "ralph-tui-45r.37" -> parent is "ralph-tui-45r"
+  let parentId = bead.parent;
+  if (!parentId && bead.id.includes('.')) {
+    const lastDotIndex = bead.id.lastIndexOf('.');
+    parentId = bead.id.substring(0, lastDotIndex);
+  }
+
   return {
     id: bead.id,
     title: bead.title,
@@ -178,7 +186,7 @@ function beadToTask(bead: BeadJson): TrackerTask {
     description: bead.description,
     labels: bead.labels,
     type: bead.issue_type,
-    parentId: bead.parent,
+    parentId,
     dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
     blocks: blocks.length > 0 ? blocks : undefined,
     assignee: bead.owner,
