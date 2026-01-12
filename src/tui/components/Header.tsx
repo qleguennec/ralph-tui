@@ -85,22 +85,34 @@ function getAgentDisplay(
   agentName: string | undefined,
   activeAgentState: HeaderProps['activeAgentState'],
   rateLimitState: HeaderProps['rateLimitState']
-): { displayName: string; color: string; showRateLimitIcon: boolean } {
+): { displayName: string; color: string; showRateLimitIcon: boolean; statusLine: string | null } {
   // Use active agent from engine state if available, otherwise fall back to config
   const activeAgent = activeAgentState?.plugin ?? agentName;
   const isOnFallback = activeAgentState?.reason === 'fallback';
   const isPrimaryRateLimited = rateLimitState?.limitedAt !== undefined;
+  const primaryAgent = rateLimitState?.primaryAgent;
 
   if (!activeAgent) {
-    return { displayName: '', color: colors.accent.secondary, showRateLimitIcon: false };
+    return { displayName: '', color: colors.accent.secondary, showRateLimitIcon: false, statusLine: null };
   }
 
-  if (isOnFallback) {
-    // On fallback agent - show with fallback indicator and warning color
+  if (isOnFallback && isPrimaryRateLimited && primaryAgent) {
+    // On fallback agent due to rate limit - show with indicator and status message
     return {
       displayName: `${activeAgent} (fallback)`,
       color: colors.status.warning,
-      showRateLimitIcon: isPrimaryRateLimited,
+      showRateLimitIcon: true,
+      statusLine: `Primary (${primaryAgent}) rate limited, using fallback`,
+    };
+  }
+
+  if (isOnFallback) {
+    // On fallback agent for other reasons
+    return {
+      displayName: `${activeAgent} (fallback)`,
+      color: colors.status.warning,
+      showRateLimitIcon: false,
+      statusLine: null,
     };
   }
 
@@ -108,6 +120,7 @@ function getAgentDisplay(
     displayName: activeAgent,
     color: colors.accent.secondary,
     showRateLimitIcon: false,
+    statusLine: null,
   };
 }
 
@@ -118,6 +131,7 @@ function getAgentDisplay(
  * - Agent and tracker plugin names (for configuration visibility)
  * - Fallback indicator when using fallback agent
  * - Rate limit icon when primary agent is limited
+ * - Status line when primary agent is rate limited (explains fallback)
  * - Progress (X/Y tasks) with mini bar
  * - Elapsed time
  */
@@ -136,7 +150,7 @@ export function Header({
   const statusDisplay = getStatusDisplay(status);
   const formattedTime = formatElapsedTime(elapsedTime);
 
-  // Get agent display info including fallback status
+  // Get agent display info including fallback status and status line message
   const agentDisplay = getAgentDisplay(agentName, activeAgentState, rateLimitState);
 
   // Show abbreviated task title when executing (max 40 chars), fallback to task ID
@@ -149,57 +163,89 @@ export function Header({
         : null
     : null;
 
+  // Calculate header height: 1 row normally, 2 rows when status line is present
+  const headerHeight = agentDisplay.statusLine ? 2 : layout.header.height;
+
   return (
     <box
       style={{
         width: '100%',
-        height: layout.header.height,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        height: headerHeight,
+        flexDirection: 'column',
         backgroundColor: colors.bg.secondary,
-        paddingLeft: 1,
-        paddingRight: 1,
       }}
     >
-      {/* Left section: Status indicator + label + optional current task */}
-      <box style={{ flexDirection: 'row', gap: 1, flexShrink: 1 }}>
-        <text>
-          <span fg={statusDisplay.color}>{statusDisplay.indicator}</span>
-          <span fg={statusDisplay.color}> {statusDisplay.label}</span>
-        </text>
-        {taskDisplay && (
+      {/* Main header row */}
+      <box
+        style={{
+          width: '100%',
+          height: 1,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingLeft: 1,
+          paddingRight: 1,
+        }}
+      >
+        {/* Left section: Status indicator + label + optional current task */}
+        <box style={{ flexDirection: 'row', gap: 1, flexShrink: 1 }}>
           <text>
-            <span fg={colors.fg.muted}> → </span>
-            <span fg={colors.accent.tertiary}>{taskDisplay}</span>
+            <span fg={statusDisplay.color}>{statusDisplay.indicator}</span>
+            <span fg={statusDisplay.color}> {statusDisplay.label}</span>
           </text>
-        )}
+          {taskDisplay && (
+            <text>
+              <span fg={colors.fg.muted}> → </span>
+              <span fg={colors.accent.tertiary}>{taskDisplay}</span>
+            </text>
+          )}
+        </box>
+
+        {/* Right section: Agent/Tracker + Progress (X/Y) with mini bar + elapsed time */}
+        <box style={{ flexDirection: 'row', gap: 2, alignItems: 'center' }}>
+          {/* Agent and tracker plugin names with fallback/rate limit indicators */}
+          {(agentDisplay.displayName || trackerName) && (
+            <text fg={colors.fg.muted}>
+              {agentDisplay.showRateLimitIcon && (
+                <span fg={colors.status.warning}>{RATE_LIMIT_ICON} </span>
+              )}
+              {agentDisplay.displayName && (
+                <span fg={agentDisplay.color}>{agentDisplay.displayName}</span>
+              )}
+              {agentDisplay.displayName && trackerName && <span fg={colors.fg.dim}>/</span>}
+              {trackerName && <span fg={colors.accent.tertiary}>{trackerName}</span>}
+            </text>
+          )}
+          <box style={{ flexDirection: 'row', gap: 1, alignItems: 'center' }}>
+            <MiniProgressBar completed={completedTasks} total={totalTasks} width={8} />
+            <text fg={colors.fg.secondary}>
+              {completedTasks}/{totalTasks}
+            </text>
+          </box>
+          <text fg={colors.fg.muted}>⏱</text>
+          <text fg={colors.fg.secondary}>{formattedTime}</text>
+        </box>
       </box>
 
-      {/* Right section: Agent/Tracker + Progress (X/Y) with mini bar + elapsed time */}
-      <box style={{ flexDirection: 'row', gap: 2, alignItems: 'center' }}>
-        {/* Agent and tracker plugin names with fallback/rate limit indicators */}
-        {(agentDisplay.displayName || trackerName) && (
-          <text fg={colors.fg.muted}>
-            {agentDisplay.showRateLimitIcon && (
-              <span fg={colors.status.warning}>{RATE_LIMIT_ICON} </span>
-            )}
-            {agentDisplay.displayName && (
-              <span fg={agentDisplay.color}>{agentDisplay.displayName}</span>
-            )}
-            {agentDisplay.displayName && trackerName && <span fg={colors.fg.dim}>/</span>}
-            {trackerName && <span fg={colors.accent.tertiary}>{trackerName}</span>}
-          </text>
-        )}
-        <box style={{ flexDirection: 'row', gap: 1, alignItems: 'center' }}>
-          <MiniProgressBar completed={completedTasks} total={totalTasks} width={8} />
-          <text fg={colors.fg.secondary}>
-            {completedTasks}/{totalTasks}
+      {/* Status line row - shown when primary agent is rate limited */}
+      {agentDisplay.statusLine && (
+        <box
+          style={{
+            width: '100%',
+            height: 1,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingLeft: 1,
+            paddingRight: 1,
+          }}
+        >
+          <text fg={colors.status.warning}>
+            <span>{RATE_LIMIT_ICON} </span>
+            <span>{agentDisplay.statusLine}</span>
           </text>
         </box>
-        <text fg={colors.fg.muted}>⏱</text>
-        <text fg={colors.fg.secondary}>{formattedTime}</text>
-      </box>
+      )}
     </box>
   );
 }
