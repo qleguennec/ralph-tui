@@ -39,7 +39,6 @@ export interface AppProps {
  */
 function createDefaultState(tasks: TaskItem[] = []): AppState {
   const completedTasksCount = tasks.filter((t) => t.status === 'done').length;
-  const progress = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : 0;
 
   return {
     header: {
@@ -47,11 +46,6 @@ function createDefaultState(tasks: TaskItem[] = []): AppState {
       elapsedTime: 0,
       completedTasks: completedTasksCount,
       totalTasks: tasks.length,
-    },
-    footer: {
-      progress,
-      totalTasks: tasks.length,
-      completedTasks: completedTasksCount,
     },
     leftPanel: {
       tasks,
@@ -190,8 +184,8 @@ export function App({ initialState, onQuit, onTaskDrillDown }: AppProps): ReactN
       <Header
         status={state.header.status}
         elapsedTime={elapsedTime}
-        completedTasks={state.footer.completedTasks}
-        totalTasks={state.footer.totalTasks}
+        completedTasks={state.header.completedTasks}
+        totalTasks={state.header.totalTasks}
       />
 
       {/* Main content area */}
@@ -227,11 +221,7 @@ export function App({ initialState, onQuit, onTaskDrillDown }: AppProps): ReactN
       </box>
 
       {/* Footer */}
-      <Footer
-        progress={state.footer.progress}
-        totalTasks={state.footer.totalTasks}
-        completedTasks={state.footer.completedTasks}
-      />
+      <Footer />
     </box>
   );
 }

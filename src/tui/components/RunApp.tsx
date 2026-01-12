@@ -676,13 +676,12 @@ export function RunApp({
   );
   const isCompact = width < 80;
 
-  // Calculate progress (counting both 'done' and 'closed' as completed)
+  // Calculate completed tasks (counting both 'done' and 'closed' as completed)
   // 'done' = completed in current session, 'closed' = historically completed
   const completedTasks = tasks.filter(
     (t) => t.status === 'done' || t.status === 'closed'
   ).length;
   const totalTasks = tasks.length;
-  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Get selected task from filtered list
   const selectedTask = displayedTasks[selectedIndex] ?? null;
@@ -848,11 +847,7 @@ export function RunApp({
       </box>
 
       {/* Footer */}
-      <Footer
-        progress={progress}
-        totalTasks={totalTasks}
-        completedTasks={completedTasks}
-      />
+      <Footer />
 
       {/* Interrupt Confirmation Dialog */}
       <ConfirmationDialog

@@ -83,18 +83,6 @@ export interface HeaderProps {
 }
 
 /**
- * Props for the Footer component
- */
-export interface FooterProps {
-  /** Progress percentage (0-100) */
-  progress: number;
-  /** Total number of tasks */
-  totalTasks: number;
-  /** Number of completed tasks */
-  completedTasks: number;
-}
-
-/**
  * Props for the LeftPanel (task list) component
  */
 export interface LeftPanelProps {
@@ -136,7 +124,6 @@ export interface RightPanelProps {
  */
 export interface AppState {
   header: HeaderProps;
-  footer: FooterProps;
   leftPanel: LeftPanelProps;
   rightPanel: RightPanelProps;
 }
