@@ -135,6 +135,70 @@ function trackerTaskToTaskItem(task: TrackerTask): TaskItem {
 }
 
 /**
+ * Recalculate dependency status for all tasks after a status change.
+ * This should be called whenever a task's status changes (e.g., completed)
+ * to update blocked/actionable status of dependent tasks.
+ */
+function recalculateDependencyStatus(tasks: TaskItem[]): TaskItem[] {
+  // Build a map of task IDs to their current status
+  const statusMap = new Map<string, { status: TaskStatus; title: string }>();
+  for (const task of tasks) {
+    statusMap.set(task.id, { status: task.status, title: task.title });
+  }
+
+  return tasks.map((task) => {
+    // Only recalculate for pending/blocked/actionable tasks (not active, done, error, or closed)
+    if (task.status !== 'pending' && task.status !== 'blocked' && task.status !== 'actionable') {
+      return task;
+    }
+
+    // If no dependencies, it's actionable
+    if (!task.dependsOn || task.dependsOn.length === 0) {
+      return task.status === 'pending' ? { ...task, status: 'actionable' as TaskStatus } : task;
+    }
+
+    // Check if all dependencies are resolved (done/closed status in our TaskItem world)
+    const blockers: BlockerInfo[] = [];
+    for (const depId of task.dependsOn) {
+      const dep = statusMap.get(depId);
+      if (dep) {
+        // Task exists - check if it's done
+        if (dep.status !== 'done' && dep.status !== 'closed') {
+          blockers.push({
+            id: depId,
+            title: dep.title,
+            status: dep.status,
+          });
+        }
+      } else {
+        // Dependency not in our list - treat as potential blocker
+        blockers.push({
+          id: depId,
+          title: `(external: ${depId})`,
+          status: 'unknown',
+        });
+      }
+    }
+
+    // Update status based on blockers
+    if (blockers.length > 0) {
+      return {
+        ...task,
+        status: 'blocked' as TaskStatus,
+        blockedByTasks: blockers,
+      };
+    }
+
+    // All dependencies resolved - task is now actionable
+    return {
+      ...task,
+      status: 'actionable' as TaskStatus,
+      blockedByTasks: undefined,
+    };
+  });
+}
+
+/**
  * Convert all tasks and determine actionable/blocked status based on dependencies.
  * A task is 'actionable' if it has no dependencies OR all its dependencies are completed/closed.
  * A task is 'blocked' if it has any dependency that is NOT completed/closed.
@@ -313,8 +377,9 @@ export function RunApp({
       actionable: 1,
       pending: 2, // Treat pending same as actionable (shouldn't happen often)
       blocked: 3,
-      done: 4,
-      closed: 5,
+      error: 4, // Failed tasks show after blocked
+      done: 5,
+      closed: 6,
     };
 
     const filtered = showClosedTasks ? tasks : tasks.filter((t) => t.status !== 'closed');
@@ -410,13 +475,17 @@ export function RunApp({
           setCurrentTaskTitle(undefined);
           setStatus('selecting');
           if (event.result.taskCompleted) {
-            setTasks((prev) =>
-              prev.map((t) =>
+            // Update completed task status AND recalculate dependency status for all tasks
+            // This ensures that tasks previously blocked by this one become actionable
+            setTasks((prev) => {
+              const updated = prev.map((t) =>
                 t.id === event.result.task.id
                   ? { ...t, status: 'done' as TaskStatus }
                   : t
-              )
-            );
+              );
+              // Recalculate blocked/actionable status now that dependencies may have changed
+              return recalculateDependencyStatus(updated);
+            });
           }
           // Add iteration result to history
           setIterations((prev) => {
@@ -432,9 +501,10 @@ export function RunApp({
           break;
 
         case 'iteration:failed':
+          // Mark task as having an error (not 'blocked' - that's for dependency issues)
           setTasks((prev) =>
             prev.map((t) =>
-              t.id === event.task.id ? { ...t, status: 'blocked' as TaskStatus } : t
+              t.id === event.task.id ? { ...t, status: 'error' as TaskStatus } : t
             )
           );
           break;

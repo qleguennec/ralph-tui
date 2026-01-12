@@ -38,6 +38,7 @@ export const colors = {
     actionable: '#9ece6a', // Green - ready to work on
     pending: '#565f89',
     blocked: '#f7768e',
+    error: '#f7768e', // Same as blocked - red for errors
     closed: '#414868', // Greyed out for completed/closed tasks
   },
 
@@ -67,6 +68,7 @@ export const statusIndicators = {
   actionable: '▶', // Ready to work on - green arrow
   pending: '○',
   blocked: '⊘',
+  error: '✗', // Error/failed task
   closed: '✓', // Same indicator as done, but will be greyed out
   running: '▶',
   selecting: '◐', // Selecting next task - half-filled circle (animated feel)
@@ -172,9 +174,10 @@ export type RalphStatus = 'ready' | 'running' | 'selecting' | 'executing' | 'pau
  * - 'actionable': Task ready to work on with no blocking dependencies (green arrow)
  * - 'pending': Task waiting to be worked on (grey circle) - legacy, prefer actionable
  * - 'blocked': Task blocked by dependencies (red symbol)
+ * - 'error': Task execution failed (red X)
  * - 'closed': Previously completed task (greyed out checkmark for historical tasks)
  */
-export type TaskStatus = 'done' | 'active' | 'actionable' | 'pending' | 'blocked' | 'closed';
+export type TaskStatus = 'done' | 'active' | 'actionable' | 'pending' | 'blocked' | 'error' | 'closed';
 
 /**
  * Get the color for a given task status
