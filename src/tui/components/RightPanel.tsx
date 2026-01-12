@@ -2,12 +2,15 @@
  * ABOUTME: RightPanel component for the Ralph TUI.
  * Displays the current iteration details or selected task details.
  * Supports toggling between details view and output view with 'o' key.
+ * Includes collapsible subagent sections when subagent tracing is enabled.
  */
 
 import type { ReactNode } from 'react';
 import { colors, getTaskStatusColor, getTaskStatusIndicator } from '../theme.js';
-import type { RightPanelProps, DetailsViewMode, IterationTimingInfo } from '../types.js';
+import type { RightPanelProps, DetailsViewMode, IterationTimingInfo, SubagentTreeNode } from '../types.js';
+import type { SubagentDetailLevel } from '../../config/types.js';
 import { formatElapsedTime } from '../theme.js';
+import { SubagentSections } from './SubagentSection.js';
 
 /**
  * Format an ISO 8601 timestamp to a human-readable time string.
@@ -209,20 +212,32 @@ function TimingSummary({ timing }: { timing?: IterationTimingInfo }): ReactNode 
 
 /**
  * Task output view - shows full-height scrollable iteration output
+ * with optional collapsible subagent sections
  */
 function TaskOutputView({
   task,
   currentIteration,
   iterationOutput,
   iterationTiming,
+  subagentDetailLevel = 'off',
+  subagentTree = [],
+  collapsedSubagents = new Set(),
+  focusedSubagentId,
+  onSubagentToggle,
 }: {
   task: NonNullable<RightPanelProps['selectedTask']>;
   currentIteration: number;
   iterationOutput?: string;
   iterationTiming?: IterationTimingInfo;
+  subagentDetailLevel?: SubagentDetailLevel;
+  subagentTree?: SubagentTreeNode[];
+  collapsedSubagents?: Set<string>;
+  focusedSubagentId?: string;
+  onSubagentToggle?: (id: string) => void;
 }): ReactNode {
   const statusColor = getTaskStatusColor(task.status);
   const statusIndicator = getTaskStatusIndicator(task.status);
+  const hasSubagents = subagentTree.length > 0 && subagentDetailLevel !== 'off';
 
   return (
     <box style={{ flexDirection: 'column', padding: 1, flexGrow: 1 }}>
@@ -237,6 +252,29 @@ function TaskOutputView({
 
       {/* Timing summary - shows start/end/duration */}
       <TimingSummary timing={iterationTiming} />
+
+      {/* Subagent sections (when tracing is enabled and subagents exist) */}
+      {hasSubagents && (
+        <box
+          title={`Subagents (${subagentTree.length})`}
+          style={{
+            marginBottom: 1,
+            border: true,
+            borderColor: colors.accent.secondary,
+            backgroundColor: colors.bg.tertiary,
+          }}
+        >
+          <scrollbox style={{ maxHeight: 10, padding: 1 }}>
+            <SubagentSections
+              tree={subagentTree}
+              collapsedSet={collapsedSubagents}
+              focusedId={focusedSubagentId}
+              detailLevel={subagentDetailLevel}
+              onToggle={onSubagentToggle}
+            />
+          </scrollbox>
+        </box>
+      )}
 
       {/* Full-height iteration output */}
       <box
@@ -279,12 +317,22 @@ function TaskDetails({
   iterationOutput,
   viewMode = 'details',
   iterationTiming,
+  subagentDetailLevel,
+  subagentTree,
+  collapsedSubagents,
+  focusedSubagentId,
+  onSubagentToggle,
 }: {
   task: NonNullable<RightPanelProps['selectedTask']>;
   currentIteration: number;
   iterationOutput?: string;
   viewMode?: DetailsViewMode;
   iterationTiming?: IterationTimingInfo;
+  subagentDetailLevel?: SubagentDetailLevel;
+  subagentTree?: SubagentTreeNode[];
+  collapsedSubagents?: Set<string>;
+  focusedSubagentId?: string;
+  onSubagentToggle?: (id: string) => void;
 }): ReactNode {
   if (viewMode === 'output') {
     return (
@@ -293,6 +341,11 @@ function TaskDetails({
         currentIteration={currentIteration}
         iterationOutput={iterationOutput}
         iterationTiming={iterationTiming}
+        subagentDetailLevel={subagentDetailLevel}
+        subagentTree={subagentTree}
+        collapsedSubagents={collapsedSubagents}
+        focusedSubagentId={focusedSubagentId}
+        onSubagentToggle={onSubagentToggle}
       />
     );
   }
@@ -310,16 +363,15 @@ export function RightPanel({
   viewMode = 'details',
   iterationTiming,
   subagentDetailLevel = 'off',
+  subagentTree,
+  collapsedSubagents,
+  focusedSubagentId,
+  onSubagentToggle,
 }: RightPanelProps): ReactNode {
-  // Note: subagentDetailLevel is available for future subagent display implementation
-  // - 'off': No tracing, show raw output only (current behavior)
-  // - 'minimal': Show start/complete events only
-  // - 'moderate': Show events + description + duration
-  // - 'full': Show events + nested output + hierarchy panel
-  void subagentDetailLevel; // Suppress unused variable warning until subagent UI is implemented
-  // Build title with view mode indicator
+  // Build title with view mode indicator and subagent level
   const modeIndicator = viewMode === 'details' ? '[Details]' : '[Output]';
-  const title = `Details ${modeIndicator}`;
+  const subagentIndicator = subagentDetailLevel !== 'off' ? ` [Trace: ${subagentDetailLevel}]` : '';
+  const title = `Details ${modeIndicator}${subagentIndicator}`;
 
   return (
     <box
@@ -341,6 +393,11 @@ export function RightPanel({
           iterationOutput={iterationOutput}
           viewMode={viewMode}
           iterationTiming={iterationTiming}
+          subagentDetailLevel={subagentDetailLevel}
+          subagentTree={subagentTree}
+          collapsedSubagents={collapsedSubagents}
+          focusedSubagentId={focusedSubagentId}
+          onSubagentToggle={onSubagentToggle}
         />
       ) : (
         <NoSelection />

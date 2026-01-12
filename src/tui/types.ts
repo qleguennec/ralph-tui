@@ -4,13 +4,14 @@
  */
 
 import type { TaskStatus, RalphStatus } from './theme.js';
-import type { IterationResult } from '../engine/types.js';
+import type { IterationResult, SubagentTreeNode } from '../engine/types.js';
 import type { TaskPriority } from '../plugins/trackers/types.js';
 import type { SubagentDetailLevel } from '../config/types.js';
 
 // Re-export types for convenience
 export type { TaskPriority };
 export type { SubagentDetailLevel };
+export type { SubagentTreeNode };
 
 /**
  * Blocker task info for display purposes
@@ -141,14 +142,22 @@ export interface RightPanelProps {
   /** Timing information for the iteration (optional) */
   iterationTiming?: IterationTimingInfo;
   /**
-   * Subagent tracing detail level (for future subagent display).
+   * Subagent tracing detail level.
    * Controls how much subagent information is shown:
    * - 'off': No tracing, use raw output
    * - 'minimal': Show start/complete events only
-   * - 'moderate': Show events + description + duration
+   * - 'moderate': Show events + description + duration (collapsible)
    * - 'full': Show events + nested output + hierarchy panel
    */
   subagentDetailLevel?: SubagentDetailLevel;
+  /** Subagent tree for the current iteration (hierarchical structure) */
+  subagentTree?: SubagentTreeNode[];
+  /** Set of collapsed subagent IDs (for section toggle state) */
+  collapsedSubagents?: Set<string>;
+  /** ID of the currently focused subagent section */
+  focusedSubagentId?: string;
+  /** Callback when a subagent section is toggled */
+  onSubagentToggle?: (id: string) => void;
 }
 
 /**

@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { colors, layout } from '../theme.js';
 import type { RalphStatus, TaskStatus } from '../theme.js';
-import type { TaskItem, BlockerInfo, DetailsViewMode, IterationTimingInfo } from '../types.js';
+import type { TaskItem, BlockerInfo, DetailsViewMode, IterationTimingInfo, SubagentTreeNode } from '../types.js';
 import { Header } from './Header.js';
 import { Footer } from './Footer.js';
 import { LeftPanel } from './LeftPanel.js';
@@ -276,6 +276,12 @@ export function RunApp({
   const [subagentDetailLevel, setSubagentDetailLevel] = useState<SubagentDetailLevel>(
     () => storedConfig?.subagentTracingDetail ?? 'off'
   );
+  // Subagent tree for the current iteration (from engine.getSubagentTree())
+  const [subagentTree, setSubagentTree] = useState<SubagentTreeNode[]>([]);
+  // Set of collapsed subagent IDs (for collapsible sections in output view)
+  const [collapsedSubagents, setCollapsedSubagents] = useState<Set<string>>(() => new Set());
+  // Currently focused subagent ID for keyboard navigation (future enhancement)
+  const [focusedSubagentId, setFocusedSubagentId] = useState<string | undefined>(undefined);
 
   // Filter and sort tasks for display
   // Sort order: active → actionable → blocked → done → closed
@@ -355,6 +361,10 @@ export function RunApp({
         case 'iteration:started':
           setCurrentIteration(event.iteration);
           setCurrentOutput('');
+          // Clear subagent state for new iteration
+          setSubagentTree([]);
+          setCollapsedSubagents(new Set());
+          setFocusedSubagentId(undefined);
           // Set current task info for display
           setCurrentTaskId(event.task.id);
           setCurrentTaskTitle(event.task.title);
@@ -444,6 +454,11 @@ export function RunApp({
           if (event.stream === 'stdout') {
             setCurrentOutput((prev) => prev + event.data);
           }
+          // Refresh subagent tree from engine (subagent events are processed in engine)
+          // Only refresh if subagent tracing is enabled to avoid unnecessary work
+          if (subagentDetailLevel !== 'off') {
+            setSubagentTree(engine.getSubagentTree());
+          }
           break;
 
         case 'tasks:refreshed':
@@ -454,7 +469,7 @@ export function RunApp({
     });
 
     return unsubscribe;
-  }, [engine]);
+  }, [engine, subagentDetailLevel]);
 
   // Update elapsed time every second - only while executing
   // Timer accumulates total execution time across all iterations
@@ -479,6 +494,21 @@ export function RunApp({
 
   // Calculate the number of items in iteration history (iterations + pending)
   const iterationHistoryLength = Math.max(iterations.length, totalIterations);
+
+  // Handler for toggling subagent section collapse state
+  const handleSubagentToggle = useCallback((id: string) => {
+    setCollapsedSubagents((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    // Update focused subagent when toggling
+    setFocusedSubagentId(id);
+  }, []);
 
   // Handle keyboard navigation
   const handleKeyboard = useCallback(
@@ -876,6 +906,10 @@ export function RunApp({
               viewMode={detailsViewMode}
               iterationTiming={selectedTaskIteration.timing}
               subagentDetailLevel={subagentDetailLevel}
+              subagentTree={subagentTree}
+              collapsedSubagents={collapsedSubagents}
+              focusedSubagentId={focusedSubagentId}
+              onSubagentToggle={handleSubagentToggle}
             />
           </>
         ) : (
@@ -894,6 +928,10 @@ export function RunApp({
               viewMode={detailsViewMode}
               iterationTiming={selectedTaskIteration.timing}
               subagentDetailLevel={subagentDetailLevel}
+              subagentTree={subagentTree}
+              collapsedSubagents={collapsedSubagents}
+              focusedSubagentId={focusedSubagentId}
+              onSubagentToggle={handleSubagentToggle}
             />
           </>
         )}
