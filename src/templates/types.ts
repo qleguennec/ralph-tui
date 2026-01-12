@@ -64,6 +64,9 @@ export interface TemplateVariables {
 
   /** Current timestamp in ISO format */
   currentTimestamp: string;
+
+  /** Task notes (additional context, progress notes, etc.) */
+  notes: string;
 }
 
 /**

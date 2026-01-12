@@ -47,7 +47,10 @@ interface PrdUserStory {
   /** Dependencies - story IDs this story depends on */
   dependsOn?: string[];
 
-  /** Optional notes for when the story was completed */
+  /** Optional notes (general purpose, shown in TUI and prompts) */
+  notes?: string;
+
+  /** Optional notes for when the story was completed (alias for notes) */
   completionNotes?: string;
 }
 
@@ -108,6 +111,9 @@ function statusToPasses(status: TrackerTaskStatus): boolean {
  * Convert a PrdUserStory to TrackerTask.
  */
 function storyToTask(story: PrdUserStory, parentName?: string): TrackerTask {
+  // Use notes or completionNotes (notes takes precedence as it's the Ralph standard)
+  const notes = story.notes || story.completionNotes;
+
   return {
     id: story.id,
     title: story.title,
@@ -120,7 +126,8 @@ function storyToTask(story: PrdUserStory, parentName?: string): TrackerTask {
     dependsOn: story.dependsOn,
     metadata: {
       acceptanceCriteria: story.acceptanceCriteria,
-      completionNotes: story.completionNotes,
+      notes: notes,
+      completionNotes: notes, // Keep for backward compat
     },
   };
 }

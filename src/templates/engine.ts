@@ -250,6 +250,7 @@ export function buildTemplateVariables(
     cwd: config.cwd ?? process.cwd(),
     currentDate: new Date().toISOString().split('T')[0],
     currentTimestamp: new Date().toISOString(),
+    notes: (task.metadata?.notes as string) ?? '',
   };
 }
 

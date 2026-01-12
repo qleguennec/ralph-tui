@@ -122,6 +122,11 @@ export const JSON_TEMPLATE = `## User Story
 {{acceptanceCriteria}}
 {{/if}}
 
+{{#if notes}}
+## Notes
+{{notes}}
+{{/if}}
+
 {{#if dependsOn}}
 **Prerequisites**: {{dependsOn}}
 {{/if}}

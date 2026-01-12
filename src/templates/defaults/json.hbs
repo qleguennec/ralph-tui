@@ -6,7 +6,7 @@
   - {{taskId}}, {{taskTitle}}, {{taskDescription}}, {{acceptanceCriteria}}
   - {{epicId}}, {{epicTitle}}, {{trackerName}}
   - {{labels}}, {{priority}}, {{status}}, {{type}}
-  - {{dependsOn}}, {{blocks}}
+  - {{dependsOn}}, {{blocks}}, {{notes}}
   - {{model}}, {{agentName}}, {{cwd}}
   - {{currentDate}}, {{currentTimestamp}}
 --}}
@@ -22,6 +22,11 @@
 {{#if acceptanceCriteria}}
 ## Acceptance Criteria
 {{acceptanceCriteria}}
+{{/if}}
+
+{{#if notes}}
+## Notes
+{{notes}}
 {{/if}}
 
 {{#if dependsOn}}
