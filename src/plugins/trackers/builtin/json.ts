@@ -595,6 +595,11 @@ export class JsonTrackerPlugin extends BaseTrackerPlugin {
     return this.filePath;
   }
 
+  /**
+   * Get available "epics" from the JSON tracker.
+   * For prd.json, each file is essentially one epic (the project itself).
+   * Returns a single task representing the project/feature being tracked.
+   */
   override async getEpics(): Promise<TrackerTask[]> {
     if (!this.filePath) {
       return [];
