@@ -40,6 +40,11 @@ const PRD_COMPATIBILITY_GUIDANCE = `
 # PRD Output Requirements
 - Wrap the final PRD in [PRD]...[/PRD] markers.
 - Start the PRD with a "# PRD: <Feature Name>" heading.
+- Include a "## Quality Gates" section listing required commands.
+- Include a "## User Stories" section with entries like:
+  - "### US-001: Title"
+  - "**Description:** As a user, I want..."
+  - "**Acceptance Criteria:**" followed by checklist bullets ("- [ ] ...").
 - Use markdown formatting suitable for conversion tools.
 `;
 

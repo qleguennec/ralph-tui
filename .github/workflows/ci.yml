@@ -18,6 +18,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Clear build cache
+        run: |
+          rm -rf node_modules/.cache
+          rm -rf node_modules/.pnpm
+          rm -rf .tsbuildinfo
+
       - name: Install dependencies
         run: bun install
 
@@ -40,6 +46,13 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Clear website build cache
+        run: |
+          cd website
+          rm -rf node_modules/.cache
+          rm -rf node_modules/.pnpm
+          rm -rf .tsbuildinfo
 
       - name: Install website dependencies
         run: cd website && bun install
