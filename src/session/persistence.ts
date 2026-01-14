@@ -591,7 +591,7 @@ export function getSessionSummary(state: PersistedSessionState): {
   trackerPlugin: string;
   epicId?: string;
   prdPath?: string;
-} {
+  } {
   return {
     sessionId: state.sessionId,
     status: state.status,
@@ -600,12 +600,12 @@ export function getSessionSummary(state: PersistedSessionState): {
     currentIteration: state.currentIteration,
     maxIterations: state.maxIterations,
     tasksCompleted: state.tasksCompleted,
-    totalTasks: state.trackerState.totalTasks,
+    totalTasks: state.trackerState?.totalTasks ?? 0,
     isPaused: state.isPaused,
     isResumable: isSessionResumable(state),
     agentPlugin: state.agentPlugin,
-    trackerPlugin: state.trackerState.plugin,
-    epicId: state.trackerState.epicId,
-    prdPath: state.trackerState.prdPath,
+    trackerPlugin: state.trackerState?.plugin ?? 'unknown',
+    epicId: state.trackerState?.epicId,
+    prdPath: state.trackerState?.prdPath,
   };
 }
