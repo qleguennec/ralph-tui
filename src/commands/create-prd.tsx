@@ -35,6 +35,8 @@ export interface CreatePrdArgs {
 
   /** Timeout for agent calls in milliseconds */
   timeout?: number;
+
+  prdSkill?: string;
 }
 
 /**
@@ -64,6 +66,8 @@ export function parseCreatePrdArgs(args: string[]): CreatePrdArgs {
       if (!isNaN(timeout)) {
         result.timeout = timeout;
       }
+    } else if (arg === '--prd-skill') {
+      result.prdSkill = args[++i];
     } else if (arg === '--help' || arg === '-h') {
       printCreatePrdHelp();
       process.exit(0);
@@ -88,6 +92,7 @@ Options:
   --output, -o <dir>     Output directory for PRD files (default: ./tasks)
   --agent, -a <name>     Agent plugin to use (default: from config)
   --timeout, -t <ms>     Timeout for AI agent calls (default: 180000)
+  --prd-skill <name>     PRD skill folder inside skills_dir
   --force, -f            Overwrite existing files without prompting
   --help, -h             Show this help message
 
@@ -228,6 +233,14 @@ export async function executeCreatePrdCommand(args: string[]): Promise<void> {
 
   // Verify setup is complete before running
   await requireSetup(cwd, 'ralph-tui prime');
+
+  const storedConfig = await loadStoredConfig(cwd);
+
+  if (parsedArgs.prdSkill && !storedConfig.skills_dir?.trim()) {
+    console.error('Error: --prd-skill requires skills_dir to be set in config.');
+    console.error('Set skills_dir in ~/.config/ralph-tui/config.toml or .ralph-tui/config.toml.');
+    process.exit(1);
+  }
 
   const result = await runChatMode(parsedArgs);
 
