@@ -142,6 +142,11 @@ function extractResultText(payload: Record<string, unknown>): string | undefined
     return outputText;
   }
 
+  const finalText = extractTextFromContent(payload.finalText ?? payload.final_text);
+  if (finalText) {
+    return finalText;
+  }
+
   return undefined;
 }
 
@@ -154,7 +159,9 @@ function parseToolCall(value: unknown): DroidToolCall | null {
   const name =
     readString(record.name) ??
     readString(record.tool_name) ??
-    readString(record.toolName);
+    readString(record.toolName) ??
+    readString(record.tool_id) ??
+    readString(record.toolId);
 
   if (!name) {
     return null;
@@ -217,7 +224,8 @@ function parseToolResult(value: unknown): DroidToolResult | null {
   const content =
     extractTextFromContent(record.content) ??
     extractTextFromContent(record.result) ??
-    extractTextFromContent(record.output);
+    extractTextFromContent(record.output) ??
+    extractTextFromContent(record.value);
 
   const isError =
     record.is_error === true ||
@@ -268,18 +276,27 @@ function extractErrorInfo(payload: Record<string, unknown>): DroidErrorInfo | un
     readString(payload.errorMessage) ??
     readString(payload.message);
 
-  if (!message) {
-    return undefined;
-  }
-
   const status = readNumber(errorObj?.status ?? payload.status ?? payload.status_code ?? payload.statusCode);
   const code = readString(errorObj?.code ?? payload.code);
 
-  return {
-    message,
-    status,
-    code,
-  };
+  if (message) {
+    return {
+      message,
+      status,
+      code,
+    };
+  }
+
+  const exitCode = readNumber(payload.code ?? payload.exitCode);
+  if (payload.type === 'exit' && exitCode !== undefined && exitCode !== 0) {
+    return {
+      message: `Process exited with code ${exitCode}`,
+      status: exitCode,
+      code,
+    };
+  }
+
+  return undefined;
 }
 
 function extractCost(payload: Record<string, unknown>): DroidCostEvent | undefined {
