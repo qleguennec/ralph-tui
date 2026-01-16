@@ -14,6 +14,41 @@
         # Package version from package.json
         version = "0.1.7";
         
+        # Pre-fetch node_modules using a Fixed-Output Derivation (allows network)
+        # To update hash: nix build .#ralph-tui 2>&1 | grep "got:" and copy the hash
+        node_modules = pkgs.stdenvNoCC.mkDerivation {
+          pname = "ralph-tui-node_modules";
+          inherit version;
+          
+          src = ./.;
+          
+          nativeBuildInputs = with pkgs; [
+            bun
+            cacert
+          ];
+          
+          impureEnvVars = pkgs.lib.fetchers.proxyImpureEnvVars ++ [
+            "GIT_PROXY_COMMAND"
+            "SOCKS_SERVER"
+          ];
+          
+          buildPhase = ''
+            export HOME=$(mktemp -d)
+            export BUN_INSTALL_CACHE_DIR=$(mktemp -d)
+            bun install --frozen-lockfile --no-progress
+          '';
+          
+          installPhase = ''
+            mkdir -p $out
+            cp -r node_modules $out/
+          '';
+          
+          dontFixup = true;
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = "sha256-j+TEfYn1WygBJz1khRxwPxC2YwMFncZPiKrVnXwaXYw=";
+        };
+        
         # Build the project
         ralph-tui = pkgs.stdenv.mkDerivation {
           pname = "ralph-tui";
@@ -29,18 +64,20 @@
           buildPhase = ''
             export HOME=$TMPDIR
             
-            # Install dependencies
-            bun install --frozen-lockfile --no-progress
+            # Copy pre-fetched dependencies
+            cp -r ${node_modules}/node_modules .
+            chmod -R u+w node_modules
             
-            # Build the project
+            # Build the project using bun
             bun build ./src/cli.tsx --outdir ./dist --target bun --sourcemap=external
             bun build ./src/index.ts --outdir ./dist --target bun --sourcemap=external
             
             # Copy assets
             cp -r assets dist/
             
-            # Generate TypeScript declarations
-            bun run build:types
+            # Generate TypeScript declarations using tsc directly via bun
+            # Use || true to continue if types generation fails (not critical for runtime)
+            bun x tsc --emitDeclarationOnly --declaration --outDir dist || true
           '';
 
           installPhase = ''
