@@ -822,6 +822,9 @@ async function runWithTui(
     } else if (event.type === 'engine:started') {
       // Track when engine started for duration calculation
       engineStartTime = new Date();
+    } else if (event.type === 'engine:warning') {
+      // Log configuration warnings to stderr (visible after TUI exits)
+      console.error(`\n⚠️  ${event.message}\n`);
     } else if (event.type === 'all:complete') {
       // Send completion notification if enabled
       if (notificationOptions?.notificationsEnabled && engineStartTime) {
@@ -1023,6 +1026,10 @@ async function runHeadless(
         logger.engineStarted(event.totalTasks);
         // Track when engine started for duration calculation
         engineStartTime = new Date();
+        break;
+
+      case 'engine:warning':
+        logger.warn('engine', event.message);
         break;
 
       case 'iteration:started':

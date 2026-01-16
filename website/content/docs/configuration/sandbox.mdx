@@ -84,6 +84,31 @@ CLI flags override config file settings:
 | `--no-sandbox` | Disable sandboxing |
 | `--no-network` | Disable network access in the sandbox |
 
+## Network Access Warning
+
+The `--no-network` flag disables **all** network access inside the sandbox, including LLM API calls. This means:
+
+- **Cloud-based agents will fail**: All current built-in agents (`claude`, `opencode`, `gemini-cli`) require network access to communicate with their respective LLM APIs. Using `--no-network` with these agents will cause API calls to fail.
+
+- **Ralph TUI will warn you**: When you use `--no-network` with an agent that declares `requiresNetwork: true`, Ralph TUI emits a warning at startup:
+
+  ```
+  ⚠️  Warning: Agent 'claude' requires network access but --no-network is enabled. LLM API calls will fail.
+  ```
+
+### When `--no-network` Makes Sense
+
+The `--no-network` flag is designed for future agent plugins that don't need network access:
+
+| Use Case | Example Agents |
+|----------|----------------|
+| **Local LLMs** | Agents using Ollama, llama.cpp, LM Studio, or LocalAI |
+| **Offline tools** | Static analysis tools, code formatters, linters |
+| **Security auditing** | Testing what network calls an agent attempts |
+| **Air-gapped environments** | Enterprise setups with strict network isolation |
+
+If you're using the built-in cloud-based agents (`claude`, `opencode`, `gemini-cli`), leave `network = true` (the default) or omit `--no-network`.
+
 ## Examples
 
 Enable sandboxing without network access:

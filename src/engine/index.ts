@@ -309,6 +309,20 @@ export class ExecutionEngine {
       tasks: initialTasks,
     });
 
+    // Warn if sandbox network is disabled but agent requires network
+    if (
+      this.config.sandbox?.enabled &&
+      this.config.sandbox?.network === false &&
+      this.agent!.getSandboxRequirements().requiresNetwork
+    ) {
+      this.emit({
+        type: 'engine:warning',
+        timestamp: new Date().toISOString(),
+        code: 'sandbox-network-conflict',
+        message: `Warning: Agent '${this.config.agent.plugin}' requires network access but --no-network is enabled. LLM API calls will fail.`,
+      });
+    }
+
     try {
       await this.runLoop();
     } finally {
