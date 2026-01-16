@@ -35,7 +35,9 @@ export interface FormattedTextProps {
 
 /**
  * Render an array of formatted segments with TUI-native colors.
- * Each segment gets its own <text> element with the appropriate fg color.
+ * Uses a single <text> with <span> elements for inline coloring to avoid
+ * the visual artifacts (black backgrounds, extra spacing) that occur when
+ * rendering multiple <text> elements.
  */
 export function FormattedText({ segments }: FormattedTextProps): ReactNode {
   if (segments.length === 0) {
@@ -43,15 +45,15 @@ export function FormattedText({ segments }: FormattedTextProps): ReactNode {
   }
 
   return (
-    <>
+    <text>
       {segments.map((segment, index) => {
         const color = COLOR_MAP[segment.color ?? 'default'];
         return (
-          <text key={index} fg={color}>
+          <span key={index} fg={color}>
             {segment.text}
-          </text>
+          </span>
         );
       })}
-    </>
+    </text>
   );
 }

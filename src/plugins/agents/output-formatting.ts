@@ -372,8 +372,7 @@ export function processAgentEventsToSegments(events: AgentDisplayEvent[]): Forma
         break;
 
       case 'tool_use':
-        // Tool calls always start on their own line
-        segments.push({ text: '\n' });
+        // Tool calls formatted inline - newlines are handled by the parser
         segments.push(...formatToolCallSegments(event.name, event.input as ToolInputFormatters));
         break;
 
