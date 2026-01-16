@@ -328,8 +328,8 @@ export function processAgentEvents(events: AgentDisplayEvent[]): string {
         break;
 
       case 'tool_use':
-        // Tool calls always start on their own line
-        parts.push('\n' + formatToolCall(event.name, event.input as ToolInputFormatters));
+        // formatToolCall already adds a trailing newline, no need for leading newline
+        parts.push(formatToolCall(event.name, event.input as ToolInputFormatters));
         break;
 
       case 'error':
