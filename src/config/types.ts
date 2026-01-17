@@ -177,6 +177,9 @@ export interface StoredConfig {
   /** Legacy alias: agent command name */
   agentCommand?: string;
 
+  /** Custom command/executable path for the agent (e.g., 'ccr code' for Claude Code Router) */
+  command?: string;
+
   /** Shorthand: tracker plugin name */
   tracker?: string;
 
