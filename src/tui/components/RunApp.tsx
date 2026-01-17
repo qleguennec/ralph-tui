@@ -453,6 +453,25 @@ export function RunApp({
     }
   }, [displayedTasks.length, selectedIndex]);
 
+  // Regenerate prompt preview when selected task changes (if in prompt view mode)
+  // This keeps the prompt preview in sync with the currently selected task
+  const selectedTaskId = displayedTasks[selectedIndex]?.id;
+  useEffect(() => {
+    if (detailsViewMode === 'prompt' && selectedTaskId) {
+      void (async () => {
+        setPromptPreview('Generating prompt preview...');
+        const result = await engine.generatePromptPreview(selectedTaskId);
+        if (result.success) {
+          setPromptPreview(result.prompt);
+          setTemplateSource(result.source);
+        } else {
+          setPromptPreview(`Error: ${result.error}`);
+          setTemplateSource(undefined);
+        }
+      })();
+    }
+  }, [detailsViewMode, selectedTaskId, engine]);
+
   // Update output parser when agent changes (parser was created before config was loaded)
   useEffect(() => {
     if (agentName) {
