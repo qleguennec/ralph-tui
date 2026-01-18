@@ -12,6 +12,7 @@ import {
   collectSystemInfo,
   formatSystemInfo,
   formatForBugReport,
+  parseCwdArg,
   type SystemInfo,
 } from './info.js';
 
@@ -347,5 +348,55 @@ describe('formatForBugReport', () => {
     const output = formatForBugReport(infoNoTemplates);
 
     expect(output).toContain('templates: none');
+  });
+});
+
+describe('parseCwdArg', () => {
+  test('returns process.cwd() when no --cwd argument', () => {
+    const result = parseCwdArg(['--json', '-c']);
+
+    expect(result).toBe(process.cwd());
+  });
+
+  test('parses --cwd=path form', () => {
+    const result = parseCwdArg(['--json', '--cwd=/some/path', '-c']);
+
+    expect(result).toBe('/some/path');
+  });
+
+  test('parses --cwd path form (space-separated)', () => {
+    const result = parseCwdArg(['--json', '--cwd', '/some/path', '-c']);
+
+    expect(result).toBe('/some/path');
+  });
+
+  test('handles paths containing = characters with --cwd= form', () => {
+    const result = parseCwdArg(['--cwd=/path/with=equals/dir']);
+
+    expect(result).toBe('/path/with=equals/dir');
+  });
+
+  test('handles paths containing = characters with space form', () => {
+    const result = parseCwdArg(['--cwd', '/path/with=equals/dir']);
+
+    expect(result).toBe('/path/with=equals/dir');
+  });
+
+  test('returns process.cwd() when --cwd is last argument without value', () => {
+    const result = parseCwdArg(['--json', '--cwd']);
+
+    expect(result).toBe(process.cwd());
+  });
+
+  test('returns first --cwd value when multiple specified', () => {
+    const result = parseCwdArg(['--cwd=/first', '--cwd=/second']);
+
+    expect(result).toBe('/first');
+  });
+
+  test('handles empty args array', () => {
+    const result = parseCwdArg([]);
+
+    expect(result).toBe(process.cwd());
   });
 });

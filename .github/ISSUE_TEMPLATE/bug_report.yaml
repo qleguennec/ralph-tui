@@ -18,7 +18,7 @@ body:
         Note: The `info` command requires ralph-tui v0.2.1 or higher. For older versions, please manually provide: ralph-tui version, bun version, and OS.
       placeholder: |
         ```
-        ralph-tui: 0.2.0
+        ralph-tui: 0.2.1
         runtime: bun 1.3.5
         os: linux 6.18.3-2-cachyos (x64)
         agent: claude v2.1.12

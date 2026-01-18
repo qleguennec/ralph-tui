@@ -279,12 +279,35 @@ const YELLOW = '\x1b[33m';
 const CYAN = '\x1b[36m';
 
 /**
+ * Parse --cwd argument from args array.
+ * Handles both '--cwd path' and '--cwd=path' forms.
+ * Uses indexOf to avoid truncating paths containing '=' characters.
+ */
+export function parseCwdArg(args: string[]): string {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    // Handle --cwd=path form (use indexOf to preserve '=' in path)
+    if (arg.startsWith('--cwd=')) {
+      return arg.substring('--cwd='.length);
+    }
+
+    // Handle --cwd path form
+    if (arg === '--cwd' && i + 1 < args.length) {
+      return args[i + 1];
+    }
+  }
+
+  return process.cwd();
+}
+
+/**
  * Execute the info command
  */
 export async function executeInfoCommand(args: string[]): Promise<void> {
   const jsonOutput = args.includes('--json');
   const copyable = args.includes('--copyable') || args.includes('-c');
-  const cwd = args.find((a) => a.startsWith('--cwd='))?.split('=')[1] ?? process.cwd();
+  const cwd = parseCwdArg(args);
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
