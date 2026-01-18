@@ -87,6 +87,10 @@ export function resolveSkillsPath(skillsPath: string, cwd?: string): string {
   if (skillsPath.startsWith('~')) {
     return expandTilde(skillsPath);
   }
+  // Already absolute paths are returned as-is
+  if (skillsPath.startsWith('/')) {
+    return skillsPath;
+  }
   // Repo-relative paths need a working directory
   if (cwd) {
     return join(cwd, skillsPath);
