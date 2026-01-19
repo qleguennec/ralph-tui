@@ -573,7 +573,7 @@ export class RemoteServer {
     const engineState = this.options.engine.getState();
     const iterationInfo = this.options.engine.getIterationInfo();
 
-    // Convert to remote-serializable state (Map → array not needed for subagents in current usage)
+    // Convert to remote-serializable state
     const remoteState: RemoteEngineState = {
       status: engineState.status,
       currentIteration: engineState.currentIteration,
@@ -592,6 +592,8 @@ export class RemoteServer {
       agentName: this.options.agentName,
       trackerName: this.options.trackerName,
       currentModel: this.options.currentModel,
+      // Include subagent tree for TUI rendering
+      subagentTree: this.options.engine.getSubagentTree(),
     };
 
     const response = createMessage<StateResponseMessage>('state_response', {

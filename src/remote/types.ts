@@ -254,6 +254,7 @@ import type {
   IterationResult,
   ActiveAgentState,
   RateLimitState,
+  SubagentTreeNode,
 } from '../engine/types.js';
 
 /**
@@ -324,6 +325,8 @@ export interface RemoteEngineState {
   trackerName?: string;
   /** Current model being used (provider/model format) */
   currentModel?: string;
+  /** Subagent tree for current iteration (for TUI rendering) */
+  subagentTree?: SubagentTreeNode[];
 }
 
 /**

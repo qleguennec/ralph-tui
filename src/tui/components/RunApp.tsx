@@ -422,6 +422,8 @@ export function RunApp({
   );
   // Subagent tree for the current iteration (from engine.getSubagentTree())
   const [subagentTree, setSubagentTree] = useState<SubagentTreeNode[]>([]);
+  // Remote subagent tree (for remote viewing)
+  const [remoteSubagentTree, setRemoteSubagentTree] = useState<SubagentTreeNode[]>([]);
   // Currently focused subagent ID for keyboard navigation
   const [focusedSubagentId, setFocusedSubagentId] = useState<string | undefined>(undefined);
   // Subagent stats cache for iteration history view (keyed by iteration number)
@@ -552,6 +554,10 @@ export function RunApp({
         if (state.currentModel) {
           setRemoteModel(state.currentModel);
         }
+        // Set remote subagent tree if available
+        if (state.subagentTree) {
+          setRemoteSubagentTree(state.subagentTree);
+        }
       }
 
       // Fetch tasks separately (getRemoteState returns empty tasks array)
@@ -597,6 +603,7 @@ export function RunApp({
           setRemoteCurrentTaskId(event.task.id);
           setRemoteCurrentTaskTitle(event.task.title);
           setRemoteOutput(''); // Clear output for new iteration
+          setRemoteSubagentTree([]); // Clear subagent tree for new iteration
           // Mark this task as active in the task list
           setRemoteTasks((prevTasks) =>
             prevTasks.map((t) =>
@@ -612,6 +619,12 @@ export function RunApp({
           if (event.stream === 'stdout') {
             setRemoteOutput((prev) => prev + event.data);
           }
+          // Refresh remote state to get updated subagent tree
+          instanceManager.getRemoteState().then((state) => {
+            if (state?.subagentTree) {
+              setRemoteSubagentTree(state.subagentTree);
+            }
+          });
           break;
         case 'task:completed':
           // Refresh task list
@@ -667,8 +680,9 @@ export function RunApp({
         return sum + self + countRunning(node.children);
       }, 0);
     };
-    return countRunning(subagentTree);
-  }, [subagentTree]);
+    const tree = isViewingRemote ? remoteSubagentTree : subagentTree;
+    return countRunning(tree);
+  }, [subagentTree, remoteSubagentTree, isViewingRemote]);
 
   // Filter and sort tasks for display
   // Sort order: active → actionable → blocked → done → closed
@@ -2092,12 +2106,12 @@ export function RunApp({
             {/* Subagent Tree Panel - shown on right side when toggled with 'T' key */}
             {subagentPanelVisible && (
               <SubagentTreePanel
-                tree={subagentTree}
+                tree={isViewingRemote ? remoteSubagentTree : subagentTree}
                 activeSubagentId={focusedSubagentId}
                 width={45}
-                currentTaskId={currentTaskId}
-                currentTaskTitle={currentTaskTitle}
-                currentTaskStatus={status === 'executing' ? 'running' : status === 'complete' ? 'completed' : status === 'error' ? 'error' : 'idle'}
+                currentTaskId={displayCurrentTaskId}
+                currentTaskTitle={displayCurrentTaskTitle}
+                currentTaskStatus={displayStatus === 'executing' ? 'running' : displayStatus === 'complete' ? 'completed' : displayStatus === 'error' ? 'error' : 'idle'}
                 selectedId={selectedSubagentId}
                 onSelect={setSelectedSubagentId}
                 isFocused={focusedPane === 'subagentTree'}
@@ -2129,12 +2143,12 @@ export function RunApp({
             {/* Subagent Tree Panel - shown on right side when toggled with 'T' key */}
             {subagentPanelVisible && (
               <SubagentTreePanel
-                tree={subagentTree}
+                tree={isViewingRemote ? remoteSubagentTree : subagentTree}
                 activeSubagentId={focusedSubagentId}
                 width={45}
-                currentTaskId={currentTaskId}
-                currentTaskTitle={currentTaskTitle}
-                currentTaskStatus={status === 'executing' ? 'running' : status === 'complete' ? 'completed' : status === 'error' ? 'error' : 'idle'}
+                currentTaskId={displayCurrentTaskId}
+                currentTaskTitle={displayCurrentTaskTitle}
+                currentTaskStatus={displayStatus === 'executing' ? 'running' : displayStatus === 'complete' ? 'completed' : displayStatus === 'error' ? 'error' : 'idle'}
                 selectedId={selectedSubagentId}
                 onSelect={setSelectedSubagentId}
                 isFocused={focusedPane === 'subagentTree'}
