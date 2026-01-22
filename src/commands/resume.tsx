@@ -129,7 +129,7 @@ async function initializePlugins(): Promise<void> {
 /**
  * Format a session entry for display
  */
-function formatSessionEntry(entry: SessionRegistryEntry, index?: number): string {
+export function formatSessionEntry(entry: SessionRegistryEntry, index?: number): string {
   const prefix = index !== undefined ? `${index + 1}. ` : '';
   const shortId = entry.sessionId.slice(0, 8);
   const statusIcon = entry.status === 'paused' ? '⏸' :
@@ -145,7 +145,7 @@ function formatSessionEntry(entry: SessionRegistryEntry, index?: number): string
 /**
  * List available resumable sessions
  */
-async function listSessions(): Promise<void> {
+export async function listSessions(): Promise<void> {
   const sessions = await listResumableSessions();
 
   if (sessions.length === 0) {
@@ -173,7 +173,7 @@ async function listSessions(): Promise<void> {
 /**
  * Clean up stale registry entries
  */
-async function cleanupRegistry(): Promise<void> {
+export async function cleanupRegistry(): Promise<void> {
   console.log('Cleaning up stale session registry entries...');
 
   const cleaned = await cleanupStaleRegistryEntries(hasPersistedSession);
@@ -190,7 +190,7 @@ async function cleanupRegistry(): Promise<void> {
 /**
  * Resolve session to resume - either from session ID, current directory, or registry
  */
-async function resolveSession(args: ResumeArgs): Promise<{
+export async function resolveSession(args: ResumeArgs): Promise<{
   cwd: string;
   registryEntry?: SessionRegistryEntry;
 } | null> {
