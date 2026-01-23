@@ -31,6 +31,7 @@ const {
   AGENT_ID_MAP,
   resolveAddSkillAgentId,
   buildAddSkillInstallArgs,
+  isEloopOnlyFailure,
 } = skillInstaller;
 
 describe('computeSkillsPath', () => {
@@ -330,5 +331,38 @@ describe('buildAddSkillInstallArgs', () => {
     });
     expect(args).toContain('-a');
     expect(args).toContain('cursor');
+  });
+});
+
+describe('isEloopOnlyFailure', () => {
+  test('returns true for output containing only ELOOP errors', () => {
+    const output = 'Error: ELOOP: too many levels of symbolic links, mkdir\nELOOP: too many levels of symbolic links';
+    expect(isEloopOnlyFailure(output)).toBe(true);
+  });
+
+  test('returns false for output with ENOENT errors', () => {
+    const output = 'Error: ELOOP: too many levels\nENOENT: no such file or directory';
+    expect(isEloopOnlyFailure(output)).toBe(false);
+  });
+
+  test('returns false for output with EACCES errors', () => {
+    const output = 'Error: ELOOP: too many levels\nEACCES: permission denied';
+    expect(isEloopOnlyFailure(output)).toBe(false);
+  });
+
+  test('returns false for output without ELOOP', () => {
+    const output = 'Error: something went wrong';
+    expect(isEloopOnlyFailure(output)).toBe(false);
+  });
+
+  test('returns false for empty output', () => {
+    expect(isEloopOnlyFailure('')).toBe(false);
+  });
+
+  test('returns true for real add-skill ELOOP output', () => {
+    const output = `Installing skill ralph-tui-prd for claude-code...
+Error: ELOOP: too many levels of symbolic links, mkdir '/home/user/.claude/skills/ralph-tui-prd'
+24 installs failed`;
+    expect(isEloopOnlyFailure(output)).toBe(true);
   });
 });

@@ -331,6 +331,8 @@ async function handleInstallSkills(args: string[]): Promise<void> {
   });
 
   if (exitCode !== 0) {
-    process.exit(exitCode);
+    console.log(`\n${YELLOW}Note:${RESET} add-skill exited with code ${exitCode}.`);
+    console.log(`${DIM}Some agents may share skill directories via symlinks, causing harmless ELOOP errors.${RESET}`);
+    console.log(`${DIM}Skills are typically still installed successfully. Run 'ralph-tui skills list' to verify.${RESET}`);
   }
 }

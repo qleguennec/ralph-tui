@@ -212,6 +212,17 @@ export function buildAddSkillInstallArgs(options: AddSkillInstallOptions): strin
 }
 
 /**
+ * Check if a non-zero exit from add-skill is due only to ELOOP errors.
+ * ELOOP errors are harmless when agent skill directories are symlinked
+ * to a shared location (e.g., ~/.agents/skills/). The skill is still
+ * accessible via the symlink even though mkdir fails inside it.
+ */
+export function isEloopOnlyFailure(output: string): boolean {
+  return output.includes('ELOOP') &&
+    !output.includes('ENOENT') && !output.includes('EACCES');
+}
+
+/**
  * Install skills for an agent via Vercel's add-skill CLI.
  * Spawns bunx add-skill as a subprocess with piped output.
  *
@@ -247,8 +258,9 @@ export async function installViaAddSkill(options: AddSkillInstallOptions): Promi
     });
 
     child.on('close', (code) => {
+      const eloopOnly = code !== 0 && isEloopOnlyFailure(output);
       resolve({
-        success: code === 0,
+        success: code === 0 || eloopOnly,
         output,
       });
     });
