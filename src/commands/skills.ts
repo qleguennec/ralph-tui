@@ -11,6 +11,7 @@ import {
   getSkillStatusForAgent,
   AGENT_ID_MAP,
   resolveAddSkillAgentId,
+  isEloopOnlyFailure,
 } from '../setup/skill-installer.js';
 import { getAgentRegistry } from '../plugins/agents/registry.js';
 import { registerBuiltinAgents } from '../plugins/agents/builtin/index.js';
@@ -287,6 +288,38 @@ export function buildAddSkillArgs(options: {
 }
 
 /**
+ * Parse the add-skill CLI output to extract installation results.
+ */
+export function parseAddSkillOutput(output: string): {
+  skillCount: number;
+  agentCount: number;
+  agents: string[];
+  installed: boolean;
+  failureCount: number;
+  eloopOnly: boolean;
+} {
+  const skillMatch = output.match(/Found (\d+) skills?/);
+  const agentCountMatch = output.match(/Detected (\d+) agents?/);
+  const agentsMatch = output.match(/Installing to: (.+)/);
+  const failMatch = output.match(/Failed to install (\d+)/);
+
+  const agents = agentsMatch
+    ? agentsMatch[1].split(',').map(a => a.trim())
+    : [];
+
+  const failureCount = failMatch ? parseInt(failMatch[1], 10) : 0;
+
+  return {
+    skillCount: skillMatch ? parseInt(skillMatch[1], 10) : 0,
+    agentCount: agentCountMatch ? parseInt(agentCountMatch[1], 10) : 0,
+    agents,
+    installed: output.includes('Installation complete'),
+    failureCount,
+    eloopOnly: failureCount > 0 && isEloopOnlyFailure(output),
+  };
+}
+
+/**
  * Handle the 'skills install' command.
  * Delegates to bunx add-skill for actual installation.
  */
@@ -311,28 +344,57 @@ async function handleInstallSkills(args: string[]): Promise<void> {
   console.log(`${BOLD}Installing ${skillText} ${agentText} [${locationText}]${RESET}`);
   console.log(`${DIM}$ bunx ${addSkillArgs.join(' ')}${RESET}\n`);
 
-  // Spawn bunx add-skill
-  const exitCode = await new Promise<number>((resolve) => {
+  // Spawn bunx add-skill with piped output
+  const { exitCode, output } = await new Promise<{ exitCode: number; output: string }>((resolve) => {
     const child = spawn('bunx', addSkillArgs, {
-      stdio: 'inherit',
+      stdio: 'pipe',
       cwd: process.cwd(),
     });
 
+    let captured = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      captured += data.toString();
+    });
+
+    child.stderr?.on('data', (data: Buffer) => {
+      captured += data.toString();
+    });
+
     child.on('error', (err) => {
-      console.error(`${RED}Error:${RESET} Failed to run add-skill: ${err.message}`);
-      console.log(`${DIM}Ensure bun is installed. You can also run directly:${RESET}`);
-      console.log(`${DIM}  bunx ${addSkillArgs.join(' ')}${RESET}`);
-      resolve(1);
+      resolve({
+        exitCode: 1,
+        output: `Failed to run add-skill: ${err.message}`,
+      });
     });
 
     child.on('close', (code) => {
-      resolve(code ?? 1);
+      resolve({ exitCode: code ?? 1, output: captured });
     });
   });
 
-  if (exitCode !== 0) {
-    console.log(`\n${YELLOW}Note:${RESET} add-skill exited with code ${exitCode}.`);
-    console.log(`${DIM}Some agents may share skill directories via symlinks, causing harmless ELOOP errors.${RESET}`);
-    console.log(`${DIM}Skills are typically still installed successfully. Run 'ralph-tui skills list' to verify.${RESET}`);
+  // Parse the output and show our summary
+  if (exitCode !== 0 && !output) {
+    console.error(`${RED}Error:${RESET} ${output || 'add-skill failed to run'}`);
+    console.log(`${DIM}Ensure bun is installed. You can also run directly:${RESET}`);
+    console.log(`${DIM}  bunx ${addSkillArgs.join(' ')}${RESET}`);
+    return;
   }
+
+  const result = parseAddSkillOutput(output);
+
+  if (result.installed) {
+    console.log(`${GREEN}✓${RESET} ${BOLD}Installed ${result.skillCount} skill${result.skillCount !== 1 ? 's' : ''} to ${result.agentCount} agent${result.agentCount !== 1 ? 's' : ''}${RESET}`);
+    if (result.agents.length > 0) {
+      console.log(`  ${DIM}Agents: ${result.agents.join(', ')}${RESET}`);
+    }
+    if (result.eloopOnly) {
+      console.log(`  ${DIM}(Some agents share skill directories via symlinks — skills already accessible)${RESET}`);
+    }
+  } else if (exitCode !== 0) {
+    console.error(`${RED}✗${RESET} Installation failed`);
+    console.log(`${DIM}Run directly for details: bunx ${addSkillArgs.join(' ')}${RESET}`);
+  }
+
+  console.log(`\n${DIM}Verify with: ralph-tui skills list${RESET}`);
 }

@@ -14,7 +14,7 @@ import { describe, expect, test, beforeEach, afterEach, spyOn, mock } from 'bun:
 mock.restore();
 
 // Import the command functions - these use the real agent registry
-import { executeSkillsCommand, printSkillsHelp, parseInstallArgs, buildAddSkillArgs } from './skills.js';
+import { executeSkillsCommand, printSkillsHelp, parseInstallArgs, buildAddSkillArgs, parseAddSkillOutput } from './skills.js';
 
 describe('printSkillsHelp', () => {
   let consoleSpy: ReturnType<typeof spyOn>;
@@ -346,5 +346,71 @@ describe('skills install command', () => {
     const allOutput = consoleSpy.mock.calls.map((c: unknown[]) => c[0]).join('\n');
     expect(allOutput).toContain('ralph-tui skills');
     expect(allOutput).toContain('add-skill');
+  });
+});
+
+describe('parseAddSkillOutput', () => {
+  test('parses successful install with no failures', () => {
+    const output = `Found 4 skills
+Detected 3 agents
+Installing to: Claude Code, OpenCode, Codex
+Installation complete`;
+    const result = parseAddSkillOutput(output);
+    expect(result.skillCount).toBe(4);
+    expect(result.agentCount).toBe(3);
+    expect(result.agents).toEqual(['Claude Code', 'OpenCode', 'Codex']);
+    expect(result.installed).toBe(true);
+    expect(result.failureCount).toBe(0);
+    expect(result.eloopOnly).toBe(false);
+  });
+
+  test('parses install with ELOOP-only failures', () => {
+    const output = `Found 4 skills
+Detected 9 agents
+Installing to: Amp, Antigravity, Claude Code, Codex, Cursor, Droid, Gemini CLI, GitHub Copilot, OpenCode
+Installation complete
+Failed to install 36
+ELOOP: too many symbolic links encountered, mkdir`;
+    const result = parseAddSkillOutput(output);
+    expect(result.skillCount).toBe(4);
+    expect(result.agentCount).toBe(9);
+    expect(result.installed).toBe(true);
+    expect(result.failureCount).toBe(36);
+    expect(result.eloopOnly).toBe(true);
+  });
+
+  test('parses install with non-ELOOP failures', () => {
+    const output = `Found 2 skills
+Detected 2 agents
+Installing to: Claude Code, OpenCode
+Installation complete
+Failed to install 1
+ENOENT: no such file or directory`;
+    const result = parseAddSkillOutput(output);
+    expect(result.installed).toBe(true);
+    expect(result.failureCount).toBe(1);
+    expect(result.eloopOnly).toBe(false);
+  });
+
+  test('handles empty output', () => {
+    const result = parseAddSkillOutput('');
+    expect(result.skillCount).toBe(0);
+    expect(result.agentCount).toBe(0);
+    expect(result.agents).toEqual([]);
+    expect(result.installed).toBe(false);
+    expect(result.failureCount).toBe(0);
+    expect(result.eloopOnly).toBe(false);
+  });
+
+  test('handles single skill single agent', () => {
+    const output = `Found 1 skill
+Detected 1 agent
+Installing to: Claude Code
+Installation complete`;
+    const result = parseAddSkillOutput(output);
+    expect(result.skillCount).toBe(1);
+    expect(result.agentCount).toBe(1);
+    expect(result.agents).toEqual(['Claude Code']);
+    expect(result.installed).toBe(true);
   });
 });
