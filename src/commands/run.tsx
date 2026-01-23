@@ -1555,10 +1555,17 @@ export async function executeRunCommand(args: string[]): Promise<void> {
     console.log(line);
   }
 
-  // Pause briefly so the user can read blocked vars before TUI clears screen
-  if (envReport.blocked.length > 0 && config.showTui) {
-    console.log('  (continuing in 3s...)');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+  // Block until Enter so user can read blocked vars before TUI clears screen.
+  // Only block in interactive TUI mode (stdin is TTY and not headless).
+  if (envReport.blocked.length > 0 && process.stdin.isTTY && !options.headless) {
+    const { createInterface } = await import('node:readline');
+    await new Promise<void>(resolve => {
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      rl.question('  Press Enter to continue...', () => {
+        rl.close();
+        resolve();
+      });
+    });
   }
   console.log('');
 

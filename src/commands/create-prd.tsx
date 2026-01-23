@@ -302,10 +302,17 @@ async function runChatMode(parsedArgs: CreatePrdArgs): Promise<PrdCreationResult
     console.log(line);
   }
 
-  // Pause briefly so the user can read blocked vars before TUI clears screen
-  if (envReport.blocked.length > 0) {
-    console.log('  (continuing in 3s...)');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+  // Block until Enter so user can read blocked vars before TUI clears screen.
+  // Only block when stdin is a TTY (interactive terminal).
+  if (envReport.blocked.length > 0 && process.stdin.isTTY) {
+    const { createInterface } = await import('node:readline');
+    await new Promise<void>(resolve => {
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      rl.question('  Press Enter to continue...', () => {
+        rl.close();
+        resolve();
+      });
+    });
   }
 
   // Run preflight check to verify agent can respond before starting conversation
